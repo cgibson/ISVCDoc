@@ -20,10 +20,10 @@
 %\pagestyle{empty}
 %and change the first command line too, see above.
 
-%\author{Christopher J. Gibson\thanks{e-mail: cgibson@calpoly.edu}
-%\and Zo\"{e} J. Wood Ph.D\thanks{e-mail: zwood@calpoly.edu}}
+\author{Christopher J. Gibson\thanks{e-mail: cgibson@calpoly.edu}
+\and Zo\"{e} J. Wood\thanks{e-mail: zwood@calpoly.edu}}
 
-%\institute{California Polytechnic State University}
+\institute{California Polytechnic State University}
 
 \mainmatter
 
@@ -37,23 +37,16 @@
 %\subfigure{\includegraphics[height=1.5in]{img/ketchup_good.png}}
 
 \begin{abstract}
-Achieving realistic or believable global illumination in scenes with participating media is expensive.  Light interacts with the particles of a volume, creating complex radiance patterns.  This paper introduces an extension to the commonly used point-based color bleeding technique which allows fast, believable in- and out-scattering building on existing data structures and paradigms.  The proposed method achieves results comparable to those produced with Monte Carlo ray tracing but with drastically reduced run times, speeding up renders by around 8 times. 
+Achieving realistic or believable global illumination in scenes with participating media is expensive.  Light interacts with the particles of a volume, creating complex radiance patterns.  This paper introduces an explicit extension to the commonly used point-based color bleeding technique which allows fast, believable in- and out-scattering effects building on existing data structures and paradigms.  The proposed method achieves results comparable to that of existing Monte Carlo integration methods, that is realistic looking renders of scenes which include volume data elements, obtaining render speeds between 10 and 36 times faster while keeping memory overhead under 5\%.
 \end{abstract}
 
 
 
 %==============================================================================%
 \section{Introduction}
-The ability to render scenes with realistic lighting is desirable for many entertainment application settings such as film.  Great results have been achieved for large scenes using point based color bleeding~\cite{christensen:2008} algorithms.  These algorithms, however, tend to limit or omit entirely the lighting contribution from volumetric data or participating media within the scenes.  This paper presents an algorithm to address this missing component in the point based color bleeding algorithm.  Specifically, we propose the addition of a data representation tuned to volumes,  \emph{light-voxel (or lvoxel)} to address the need to represent participating media to an existing global illumination algorithm which leverages a point cloud representation of a scene.  
+The ability to render scenes with realistic lighting is desirable for many entertainment application settings such as film.  Great results have been achieved for large scenes using point based color bleeding~\cite{christensen:2008} algorithms.  In their basic form, these algorithms tend to limit or omit the lighting contribution from volumetric data or participating media within the scenes.  This paper presents an explicit extension to the point-based color bleeding (PCB) algorithm and data representation tuned to volumes,  \emph{light-voxel (or lvoxel)} to address the need to represent participating media which leverages a point cloud representation of a scene.  
 
-  The proposed method achieves results comparable to those produced with Monte Carlo ray tracing but with drastically reduced run times, speeding up renders by around 8 times.  Figure~\ref{fig:compare} illustrates a comparison of our algorithm and Monte Carlo ray traced results.
-
-\begin{figure}[h!]
-    \centering
-    \includegraphics[width=80mm]{img/compare.png}
-    \caption{Comparison of the PCB extension (left) and traditional Monte Carlo results (right.)}
-    \label{fig:compare}
-\end{figure}
+  The proposed method achieves results comparable to those produced with Monte Carlo ray tracing~\cite{MCRay1}, that is, images that include color bleeding from volume elements but with drastically reduced run times, speeding up renders by around 10 to 36 times.  Figure~\ref{fig:compare1} illustrates a comparison of our algorithm and Monte Carlo ray traced results.
 
 
 \section{Background}
@@ -92,7 +85,7 @@ Both (\ref{siga_eq}) and (\ref{sigs_eq}) involve the reduction of energy through
 Then, integrating the transmittion of the volume from (\ref{sigt_eq}) over a ray gives us the following:
 
 \begin{equation}
-T_{r}(\textup{p} \to \textup{p}') = e^{-\int_{0}^{d}\sigma (p+t\mathit{w},\mathit{w})d\mathit{t}}.
+T_{r}(\textup{p} \to \textup{p}') = e^{-\int_{0}^{d}\sigma_{t} (p+t\mathit{w},\mathit{w})d\mathit{t}}.
 \label{transmittion_eq}
 \end{equation}
 
@@ -102,14 +95,14 @@ When dealing with particles in volumes that may scatter light, a distribution fu
 
 %----------------------------------%
 \subsubsection{Scatter In}
-Although $\sigma_{s}$ may reduce the energy of a ray passing through a volume, radiance from other rays may contribute to the original ray's radiance.  Before we can integrate incoming radiance, we must take into account the \textit{source term} $\mathbb{S}$, or total added radiance per unit distance, where the following constraint must hold true:
+Although $\sigma_{s}$ may reduce the energy of a ray passing through a volume, radiance from other rays may contribute to the original ray's radiance.  Before we can integrate incoming radiance, we must guarentee that the distribution is normalized, where the following constraint must hold true:
 
 \begin{equation}
 \int_{\mathbb{S}^2}phase(w \to w')\textup{d}w' = 1.
 \label{source_eq}
 \end{equation}
 
-This normalization makes sure that the phase function actually defines the probability distribution for a particular direction.
+This normalization makes sure that the phase function actually defines a proper probability distribution for a particular direction.
 
 Finally, we can integrate the total radiance scatter based on the normalized phase function $phase(w \to w')$ over all directions $w'$ to get our total scatter in a direction $w$:
 
@@ -123,53 +116,56 @@ $L_{\textup{ve}}(\textup{p}, w)$ represents the emission coefficient of a volume
 \section{Related Work}
 
 \subsection{Global Illumination}
-Global illumination is an important problem in computer graphics, that numerous successful algorithms involving photon mapping \cite{Jensen:2009}, radiosity \cite{radiosity} and Monte Carlo sampling techniques \cite{monte_carlo} which try to mitigate or overcome in a reasonable timeframe.  The most closely related methods are those that sample the scene and use a two phase approach to model direct illumination and indirect illumination. Of particular relevance to this work is that done in Point-Based Approximate Color Bleeding \cite{christensen:2008}, which describes the process of sampling the scene in order to create a point cloud representation, used to evaluate the incoming radiance surrounding a given point on a surface.  As recently as 2010, discussion of approximating volume scattering using point clouds was mentioned in \cite{christensen:siggraph}, but did not offer how \textit{back-to-front or front-to-back rasterization} would be achieved with the current rasterization method (handled by our octree traversal method) or how scatter, extinction and absorption would be managed within the three-dimensional volume representation inside the point cloud.
+Global illumination is an important problem in computer graphics, that numerous successful algorithms involving photon mapping \cite{Jensen:2009}, radiosity \cite{radiosity} and Monte Carlo sampling techniques \cite{monte_carlo} try to mitigate or overcome in a reasonable timeframe.  The most closely related methods are those that sample the scene and use a two phase approach to model direct and indirect illumination. Of particular relevance to this work is that done in Point-Based Approximate Color Bleeding \cite{christensen:2008}, which describes the process of sampling the scene in order to create a point cloud representation, used to evaluate the incoming radiance surrounding a given point on a surface.  As recently as 2010, discussion of approximating volume scattering using point clouds was mentioned in \cite{christensen:siggraph}, but did not offer how \textit{back-to-front or front-to-back rasterization} would be achieved with the current rasterization method (handled by our octree traversal method) or how scatter, extinction and absorption would be managed within the three-dimensional volume representation inside the point cloud.
 
-Other closely related work includes attempts at simulating light scatter and absorption properties of participating media through existing photon mapping techniques, which have shown promise in the past.  In \cite{jensen:1998}, Jensen describes a process where photons participate and become stored inside the volume itself for later gathers during volume integration.  While this technique is shown to work, it primarily focuses on caustic effects in volumes and the generated photon map.  Our storage method does not require data to be stored in the volume, but in a separate, more lightweight data-structure better suited for out-of-core rendering.
+Other closely related work includes attempts at simulating light scatter and absorption properties of participating media through existing photon mapping techniques, which have shown promise in the past.  \cite{jensen:1998} describes a process where photons participate and become stored inside the volume itself for later gathers during volume integration.  While this technique is shown to work, it primarily focuses on caustic effects in volumes and the generated photon map.  Our storage method does not require data to be stored in the volume, but in a separate, more lightweight data-structure better suited for out-of-core rendering.
 
 \subsection{Volume Rendering}
-This paper is focused on the rendering of scenes which contain volume data.  A number of approaches have been developed in order to render volume data~\cite{levoy88}\cite{Kajiya84}.  Volume data representations often include an efficient multi-resolution data representation~\cite{Westermann94}\cite{Levoy90}.  When dealing with multi-resolution volume octree datastructures, removing occluded nodes from being tested can drastically increase performance \cite{guthe}.  Our algorithm takes advantage of a multi-resolution, view-independant octree datastructure in order to handle a large amount of complex lighting and volume data, skipping material occluded by opaque geometry cached in the data-structure in the form of surfels.
+This paper is focused on the rendering of scenes which contain volume data.  A number of approaches have been developed in order to render volume data~\cite{levoy88}\cite{Kajiya84}.  Volume data representations often include an efficient multi-resolution data representation~\cite{Westermann94}\cite{Levoy90}.  When dealing with multi-resolution volume octree datastructures, removing occluded nodes from being tested can drastically increase performance \cite{guthe}.  Our algorithm takes advantage of a multi-resolution, view-independant octree datastructure in order to handle a large amount of complex lighting and volume data, skipping material occluded by opaque geometry cached in the data-structure in the form of surfels.  Although the idea of using these techniques in volumes is not new, utilizing them to guarentee correct volume integration in the point cloud used in PCB is a new development, which will be described in more detail in Section \ref{scatterout_sec}.
 
 %==============================================================================%
 \section{Algorithm}
 \label{algorithm_sec}
-We present an algorithm which is an extension to the point cloud techniques described in \cite{tabellion} and \cite{christensen:2008}, specifically building off the point-based color bleeding (PCB) technique by Christensen.  The modifications involve evaluating light scatter and absorption properties at discrete points in the volume and adding them to the point cloud.  Using a front-to-back traversal method, we can correctly and quickly approximate the \textit{light-volume} representation's contribution to a scene's indirect lighting evaluation.
+We present an algorithm which is an extension to the point cloud techniques described in \cite{tabellion} and \cite{christensen:2008}, specifically building off the point-based color bleeding technique by Christensen.  The modifications involve evaluating light scatter and absorption properties at discrete points in the volume and adding them to the point cloud.  Using a front-to-back traversal method, we can correctly and quickly approximate the \textit{light-volume} representation's contribution to a scene's indirect lighting evaluation.
 
 In general, these methods subdivide the world into small representational segments, called surfels in \cite{christensen:2008}, which are stored in a large point cloud, representing the scene.  Surfels are used to model direct illumination, and are then used in a later phase to compute indirect lighting and color bleeding in an efficient manner.  
 
-The goal of our proposed method is to include volumetric representations into a global illumination algorithm in a fast and coherent way.  In the existing algorithms~\cite{christensen:2008}, surfels represent opaque materials within the point cloud, thus to incorporate a representation of volumetric data, an additional data representation was necessary to handle the scatter and absorption properties of participating media.  In general, our data representation closely follows the model of surfels, in that we choose to sample the volume at discrete locations and store a finite representation of the lighting at those discrete locations, but with modifications to handle the special attributes of lighting in transparent media.  In keeping with the naming conventions established, we call our discrete sampling of lighting elements for a volume: \emph{lvoxels}.  
+The goal of our proposed method is to include volumetric representations into a common global illumination algorithm in a fast and coherent way while keeping memory overhead and computational complexity to a minimum.  In the existing algorithms~\cite{christensen:2008}, surfels represent opaque materials within the point cloud, thus to incorporate a representation of volumetric data, an additional data representation was necessary to handle the scatter and absorption properties of participating media.  In general, our data representation closely follows the model of surfels, in that we choose to sample the volume at discrete locations and store a finite representation of the lighting at those discrete locations, but with modifications to handle the special attributes of lighting in transparent media.  In keeping with the naming conventions established, we call our discrete sampling of lighting elements for a volume: \emph{lvoxels}.  
 
 In general, our algorithm must 1) sample the scene geometry (including the volume) and store the direct lighting (or relevant lighting properties,) 2) gather indirect lighting and 3) model the scatter-out and scatter-in properties of volumetric lighting.
 
 \subsection{Sampling the Scene}
 The goal of this stage of the algorithm is to sample the scene geometry (including the volume) and store the direct lighting in a finite data representation to be used later for global illumination lighting effects.  As all of our finite data represents the direct lighting of some small portion of a surface or element in a three-dimensional scene, we refer to the union of all finite lighting samples as a ``point cloud''.  This point cloud is stored in an octree representation for efficient access to all data elements, surfels and lvoxels.  Surfels differ from lvoxels only in that surfels represent a flat, solid geometry while lvoxels represent a transparent, volumetric medium.  Both have radii and position so both can be placed within the same point cloud.  
 
-We sample the opaque geometry in surfels, which are computed using a perspective viewing volume slightly larger then the current viewing frustum, with a sampling rate two times that of the desired pixel resolution.  Lvoxels are generated by marching over the entire domain of the volume by a specific, preset interval, sampling scatter and absorption coefficients in order to get an average throughout the area an lvoxel will occupy.  Typically this involves eight to sixteen absorption and scatter samples per lvoxel.  These values, as well as the radius of the lvoxels, may differ depending on the complexity and raw resolution of the volume.
+We sample the opaque geometry as surfels, which are computed using a perspective viewing volume slightly larger then the current viewing frustum, with a sampling rate two times that of the desired pixel resolution.  Rays are cast from this logical camera just as we would ray trace a nomral scene, surfels generated where those rays intersect with the scene.  Lvoxels are generated by marching over the entire domain of the volume by a specific, preset interval, sampling scatter and absorption coefficients in order to get an average throughout the area an lvoxel will occupy.  Typically this involves eight to sixteen absorption and scatter samples per lvoxel.  These values, as well as the radius of the lvoxels, may differ depending on the complexity and raw resolution of the volume.  In our tests, one lvoxel for every $2^3 - 4^3$ voxels seemed sufficient enough to achieve good results.
 
 Caching the direct light contribution at each lvoxel by testing the transmittance (\ref{transmittion_eq}) to each light source saves us from re-computing light calculations during sampling in sections \ref{scatterout_sec} and \ref{scatterin_sec} \cite{signotes:2010}.
 
 
 \subsection{Gathering Light}
+\label{gather_sec}
 
 Next, our algorithm uses a gather stage similar to the one in PCB, which calculates the irradiance at a point on a surface, given the radiance of the scene around it.  Unlike PCB, which uses a software rasterization method, we chose to evaluate irradiance by raycasting into the point-cloud around a hemisphere oriented along the surface's normal.  This decision was made to simplify the tests which compare traditional Monte Carlo sampling methods to the extended PCB algorithm, but also to simplify evaluation of the transparent lvoxels within the octree.
 
-In order to approximate the integral of incoming light at point $p$ on the surface, we sample across a hemisphere oriented along the surface's normal $N$ at $\textup{p}$.  Each sample cast out from $p$ evaluates $L(\textup{p} \leftarrow w)$ which is then multiplied by $w \cdot N$ in order to represent $cos\theta$.  In order to obtain good results, 128-256 samples are typically necessary to combat noise caused by the samples.  The resulting irradiance from the weighted sum of the samples is normalized by multiplying the \textit{source term} $\mathbb{S}$ (\ref{source_eq}) for the given phase function. 
+In order to approximate the integral of incoming light at point $p$ on the surface, we sample across a hemisphere oriented along the surface's normal $N$ at $\textup{p}$.  Each sample cast out from $p$ evaluates $L(\textup{p} \leftarrow w)$ which is then multiplied by $w \cdot N$ in order to represent $cos\theta$.  In order to obtain good results, 128-256 samples are typically necessary to combat noise caused by the samples.  How radiance and transmittance are handled with lvoxels will be explained in the next section.
 
 
 %------------------------------------------------------------%
 \subsection{Adding Scatter-Out}
 \label{scatterout_sec}
-Modifications to the previously mentioned irradiance sampling technique in order to allow scatter-out effects with volumes are few.  The biggest changes are to the point cloud octree and its traversal.  Specifically, when computing lighting, we must account for the fact that when an element of the point cloud is hit, it may be transparent.  In the standard algorithm, absorption and transmittance would not be taken into account and the traversal would stop at the first lvoxel encountered.
+Modifications to the previously mentioned irradiance sampling technique for scatter-out effects with volumes are few.  The most significant changes are to the point cloud octree and its traversal.  Specifically, when computing lighting, we must account for the fact that when an element of the point cloud is hit, it may be transparent.  In the standard algorithm, absorption and transmittance would not be taken into account and the traversal would stop at the first lvoxel encountered.
 
 In order to properly evaluate transparent and opaque surfaces within the point cloud, we made changes to node-level octree traversal.  Each branch traverses its children from closest to farthest, guaranteeing that closer leaf nodes are evaluated first.  Leaf nodes then use the pre-evaluated scatter ($\sigma_{s}$) and absorption ($\sigma_{t}$) coefficients for each lvoxel to appropriately alter the sample ray's transmittance, and continue with the traversal, with each hit contributing to the final resulting radiance value.  Once a surfel is hit, there is no need to continue traversing the octree.
+
+In addition to traversing the tree front-to-back, we also keep track of the incoming radiance and current transmittance.  Both of these values are modified according to the equations described in Section \ref{background_sec} taking into account each lvoxel's scatter and absorption coefficients.
 
 
 %------------------------------------------------------------%
 \subsection{Adding Scatter-In}
 \label{scatterin_sec}
-After adding lvoxels to our octree structure and evaluation algorithm, the only modifications necessary for scatter-in are to the volume rendering equation.  
+After adding lvoxels to our octree structure and evaluation algorithm, the only modifications necessary for scatter-in are to the volume rendering equation.
 
-Recall that to model lighting for a volume, in-scattering requires integrating over all directions.  Casting Monte Carlo sample rays through the volume and into the scene would be computationally expensive.  Instead, for each sample we send out rays into the point cloud, iterating through a much less dense dataset.  This helps us replace expensive $S(\textup{p, w})$ evaluations with traversals into the octree.  The two main differences between sampling scattered light within a volume and evaluating the irradiance on a surface are 1) the distribution function, which is based on the volume's phase function, and 2) the samples are distributed over a sphere rather than a hemisphere.
+Recall that to model lighting for a volume, in-scattering requires integrating over all directions.  Casting Monte Carlo sample rays through the volume and into the scene would be computationally expensive.  Instead, for each sample we send out rays into the point cloud, iterating through a much less dense dataset.  This helps us replace expensive $S(\textup{p, w})$ evaluations with traversals into the octree.  The two main differences between sampling scattered light within a volume and evaluating the irradiance on a surface are 1) the distribution function, which is based on the volume's phase function, and 2) the samples are distributed over a sphere rather than a hemisphere.  Each of these samples gather light as described in \ref{gather_sec}.
 
 
 %==============================================================================%
@@ -177,8 +173,8 @@ Recall that to model lighting for a volume, in-scattering requires integrating o
 Our algorithm is able to achieve realistic lighting effects for scenes that include volumetric elements using our lvoxel representation with a point-based color bleeding approach to global illumination.
 The following test cases were run on a commodity-class Intel i5 3 GHz machine with 4 Gb of RAM.  Because of the disparity between academic-level versus production-class ray tracer implementations, we tested and compared our results against a naive implementation of Monte Carlo global illumination not using the point cloud representation.  We then compared the resulting images and the time it took to render each.  Our algorithm is able to achieve a small difference between images and an increase in efficiency measured in time to render.
 
-The scene tested involved a 60,000 triangle Sponza Atrium including only vertex and normal information for simplicity.  The CT scan data of the Stanford Bunny was used in order to test scatter in/out contributions by complex participating media.
-Figure~\ref{fig:compare} shows the bunny and Sponza Atrium showing traditional Monte Carlo scattering.  At first glance these two images are very similar, however there are a number of small artifacts present in the image rendered with the point cloud representation, and the indirect lighting is slightly darker overall.  A closer look at the two results exemplifies the great similarity between the two images, as shown in Figure~\ref{fig:compare_close}.
+The scene tested involved a 60,000 triangle Sponza Atrium including only vertex and normal information for simplicity.  CT scan datasets of a human head and the Stanford Bunny were used in order to test scatter in/out contributions by complex participating media.
+Figure~\ref{fig:compare_trad} shows the bunny and Sponza Atrium showing traditional Monte Carlo scattering.  At first glance these two images are very similar, however there are a number of small artifacts present in the image rendered with the point cloud representation, and the indirect lighting is slightly darker overall.  A closer look at the two results exemplifies the great similarity between the two images, as shown in Figure~\ref{fig:compare_close}.
 
 \begin{figure}[h!]
     \centering
@@ -195,20 +191,74 @@ Figure~\ref{fig:compare} shows the bunny and Sponza Atrium showing traditional M
 \end{figure}
 
 %------------------------------------------------------------%
-\subsection{Data Comparison}
+\section{Data Comparison}
 
-\begin{center}
 \setlength{\tabcolsep}{5pt}
+
+\begin{table}
+\begin{center}
 \begin{tabular}{ | l | c | c | c | }
   \hline                       
-  Scene & Render Time (s) & Image Delta & Memory Overhead \\
-  \hline                  
-  Monte Carlo w/o PCB & 3351 sec & NONE & NONE \\
-  Traditional PCB & 0385 sec & 11.0\% & 390 Mb (4.0\%) \\
-  Extended PCB & 0441 sec & 4.8\% & 395 Mb (4.1\%)  \\
+  Scene: Bunny in Sponza & Render Time (s) & Image Delta & Memory Overhead \\
+
+  \hline
+  \multicolumn{4}{|c|}{$64^3$ resolution volume} \\     
+  \hline            
+
+  Monte Carlo w/o PCB & 3229 sec & NONE & NONE \\
+  Traditional PCB & 348 sec & 5.8\% & 466.3 MB (4.780\%) \\
+  Extended PCB & 433 sec & 2.1\% & 466.7 MB (4.786\%)  \\
+
+  \hline
+  \multicolumn{4}{|c|}{$128^3$ resolution volume} \\     
+  \hline            
+             
+  Monte Carlo w/o PCB & 3297 sec & NONE & NONE \\
+  Traditional PCB & 348 sec & 5.6\% & 466.3 MB (4.780\%) \\
+  Extended PCB & 402 sec & 2.4\% & 467.5 MB (4.783\%)  \\
+
+  \hline
+  \multicolumn{4}{|c|}{$512^3$ resolution volume} \\     
+  \hline            
+             
+  Monte Carlo w/o PCB & 3674 sec & NONE & NONE \\
+  Traditional PCB & 348 sec & 9.6\% & 466.3 MB (4.780\%) \\
+  Extended PCB & 417 sec & 3.8\% & 466.4 MB (4.785\%)  \\
+  \hline  
+  \hline  
+             
+%  \smallskip
+  Scene:CT head in Sponza & Render Time (s) & Image Delta & Memory Overhead \\
+
+  \hline
+  \multicolumn{4}{|c|}{$64^3$ resolution volume} \\     
+  \hline            
+
+  Monte Carlo w/o PCB & 10150 sec & NONE & NONE \\
+  Traditional PCB & 348 sec & 14.2\% & 466.3 MB (4.780\%) \\
+  Extended PCB & 756 sec & 3.7\% & 468.0 MB (4.800\%)  \\
+
+  \hline
+  \multicolumn{4}{|c|}{$128^3$ resolution volume} \\     
+  \hline            
+             
+  Monte Carlo w/o PCB & 15811 sec & NONE & NONE \\
+  Traditional PCB & 348 sec & 14.4\% & 466.3 MB (4.780\%) \\
+  Extended PCB & 755 sec & 4.2\% & 467.3 MB (4.790\%)  \\
+
+  \hline
+  \multicolumn{4}{|c|}{$256^3$ resolution volume} \\     
+  \hline            
+             
+  Monte Carlo w/o PCB & 31373 sec & NONE & NONE \\
+  Traditional PCB & 348 sec & 14.2\% & 466.3 MB (4.780\%) \\
+  Extended PCB & 864 sec & 4.3\% & 467.1 MB (4.790\%)  \\
   \hline  
 \end{tabular}
+\caption{Data for the Sponza Scene With the Stanford Bunny volume and the CT Head Volume Runtimes}
+\label{tb:comparison_head}
 \end{center}
+\end{table}
 
 
 %------------------------------------------------------------%
@@ -216,67 +266,79 @@ Figure~\ref{fig:compare} shows the bunny and Sponza Atrium showing traditional M
 
 %----------------------------------%
 \subsubsection{Memory}
-When using traditional PCB, the real benefit to its surfel representation is shown in more complex scenes.  In the Sponza Atrium, the scene generated over 2.5 million surfels for a 60,000 triangle scene.  Adding volume data to the scene does not add an objectionable amount of data to the point cloud, but for scenes with large volumes the costs could quickly add up without some form of multi-resolution light caching.  In this regard, adding yet another representation of the volumes may be expensive, but not prohibitively so.  Additionally, larger scenes would benefit from this representation, as it would be significantly simpler than the entire scene and can be moved to another system for out-of-core evaluation.
+When using traditional PCB, the real benefit to its surfel representation is shown in more complex scenes.  In the Sponza Atrium, the scene generated over 2.5 million surfels for a 60,000 triangle scene.  Adding volume data to the scene does not add an objectionable amount of data to the point cloud, but for scenes with large volumes the costs could quickly add up without some form of multi-resolution light caching.  In this regard, adding yet another representation of the volumes may be expensive, but not prohibitively so.  Additionally, larger scenes would benefit from this representation, as the point cloud would be significantly simpler than the entire scene and can be moved to another system for out-of-core evaluation.
 
 %----------------------------------%
 \subsubsection{Speed}
-Even without volume integration, Monte Carlo integration without a lighting representation like PCB is prohibitively slow for even the simplest scenes.  Adding a point cloud representation gave us an impressive speedup.  That speedup was compounded even more when volume scattering was added into the tests, showing a factor of eight speedup for our test scenes.
+Even without volume integration, Monte Carlo integration without a lighting representation like PCB is prohibitively slow for even the simplest scenes.  Adding a point cloud representation gave us an impressive speedup.  That speedup was compounded even more when volume scattering was added into the tests, showing a speedup upwards of 36 times that of the Monte Carlo renders.  Compared to traditional PCB runs, we found increase in overal runtime to be well worth the improvements to the renders we achieved.
 
 Even on sparse octrees without volumes, our \textit{front to back} octree traversal method operates at an efficiency of $O\log{n}$ for each node traversal while skipping nodes occluded by surfels, leading to an average performance increase of over 18\%.
 
 %----------------------------------%
 \subsubsection*{Image Quality}
-Figure~\ref{fig:compare_trad} compares the non-PCB Monte Carlo image with that of the traditional PCB renders, showing the clear lack of proper in-/out-scattering.  With the extended algorithm, however, the scenes look nearly identical.
 
-We would like to note that there are a number of small artifacts in the PCB renders due to imprecision and incorrect surfel collisions.  It is important to note that, as past papers will attest, such issues are easily overcome and our artifacts are more due to implementation and time constraints than limits on the algorithm itself.
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=100mm]{img/compare.png}
+    \caption{Bunny Scene comparison of the PCB extension (left) and traditional Monte Carlo results (right.)}
+    \label{fig:compare1}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=100mm]{img/compare_head.png}
+    \caption{CT Head scene comparison of the PCB extension (left) and traditional Monte Carlo results (right.)}
+    \label{fig:compare2}
+\end{figure}
+
+Figures \ref{fig:compare1} and \ref{fig:compare2} show a comparison between Monte Carlo and PCBEX render results.  In order to objectively compare the image results, we used a perceptual image difference program called pdiff to objectively identify how close the two images were to each other.  The results are shown in tables \ref{tb:comparison_bunny} and \ref{tb:comparison_head}, which ranged from 2.1\% and 4.3\%.
+
+
+Figure~\ref{fig:compare_trad} compares the non-PCB Monte Carlo image with that of the traditional PCB renders, showing the clear lack of proper in-/out-scattering.  With the extended algorithm, however, the results are comparable.
 
 \subsection{Conclusion}
 
-The addition of the lvoxel paradigm to the already successful point based color bleeding algorithm is shown to be a cost effective method of approximating and evaluating complex scatter functions based on participating media.  The speedups are clear, and the memory footprint is easily manageable.  The ability to evaluate the irradiance at a point in the scene by using only the point cloud representation is a clear win for out-of-core renderers.
+In this paper, we discussed the necessity for proper global illumination approximations in renders, listed a number of algorithms that have attempted to do this but have fallen short specifically in volume scatter contributions, and presented an extension to the PCB algorithm by \cite{christensen:2008} which handles both scatter-in and scatter-out contributions.  The addition of the lvoxel paradigm to the already successful point-based color bleeding algorithm is shown to be a cost effective method of approximating and evaluating complex scatter functions based on participating media.  We obtained render speeds up to 36 times faster than that of pure Monte Carlo renders with a memory overhead between 2 to 5 MB with an image difference of less than 5\% across all tests.
 
 %==============================================================================%
 \section{Future Work}
 
 
-As mentioned in Christensen's point based color bleeding article, surfels can be modified to ``gather'' light recursively from their position in the point cloud, allowing for simulated multi-bounce lighting.  This would require only a small change to the current algorithm, and would apply to volumes as well to allow very realistic scatter approximations in participating media.
+As mentioned by Christensen~cite{christensen:2008}, surfels can be modified to ``gather'' light recursively from their position in the point cloud, allowing for simulated multi-bounce lighting.  This would require only a small change to the current algorithm, and would apply to volumes as well to allow very realistic scatter approximations in participating media.
 
-In our tests, all participating media scatters light equally in all directions.  This is rarely the case, as volumes tend to have unique scatter functions.  We can simulate more complex surface scattering functions by creating spherical harmonic representations of the radiance at any specific point in the volume.  Our current implementation supports such an approach, but remains untested.
+In our tests, we focused on isotropic phase functions in our volumes.  This is rarely the case, as volumes tend to have unique scatter functions.  We can simulate more complex surface scattering functions by creating spherical harmonic representations of the radiance at any specific point in the volume.  Our current implementation supports such an approach, but remains untested.
 
 Typical implementations of the PCB algorithm include rougher estimations (usually in the form of a series of spherical harmonic coefficients) at higher levels in the octree, to be evaluated depending on that node's solid angle to our sample point.  Due to time constraints, we did not implement full multi-resolution representations of each node.  Including LVoxel data in that representation would be a trivial process.
 
-Our ray tracer runs a number of threads to split the image into multiple parts  in order to achieve simple parallelism.  Before the threads are created, however, we generate surfels and lvoxels sequentially.  Due to the nature of our octree implementation, we cannot add elements and still be thread safe, but this would not be a large obstacle.  Scenes like the sponza atrium would run a number of times faster if we were to parallelize our implementation more effectively.
-
+\section*{Acknowledgements}
+A special thanks to Patrick Kelly from DreamWorks Animations for his consistent help and support.  Our brainstorming sessions were invaluable, and always left me full of new ideas and , but also really helped me hone the subject for this project.
 
 \bibliographystyle{pbcbex}
 \bibliography{pbcbex}
 
-
-
-%==============================================================================%
-\section*{Acknowledgements}
-\textit{Acknowledgements removed for review.}
-%A special thanks to Patrick Kelly from DreamWorks Animations for his consistent help and support.  Our brainstorming sessions were invaluable, and always left me full of new ideas and , but also really helped me hone the subject for this project.
-
-
-
-%==============================================================================%
 \begin{figure}[h!]
     \centering
-    \includegraphics[width=80mm]{img/ketchup_good_corrected.png}
-    \caption{Image exemplifying clear out-scattering from Stanford bunny volume.}
+   \includegraphics[width=140mm]{img/Two_Bunnies.png}
+    \caption{On the left is  an image exemplifying clear out-scattering from Stanford bunny volume.  The right shows an image exemplifying clear color bleeding next to the red wall in the bunny's shadow and correct transmittance through the bunny's hollow form.}
 \end{figure}
 
-\begin{figure}[h!]
-    \centering
-    \includegraphics[width=80mm]{img/bunny_spot/spot_right_new.png}
-    \caption{Image exemplifying clear color bleeding next to the red wall in the bunny's shadow and correct transmittance through the bunny's hollow form.}
-\end{figure}
+%\begin{figure}[h!]
+%    \centering
+ %   \includegraphics[width=80mm]{img/ketchup_good_corrected.png}
+   % \caption{Image exemplifying clear out-scattering from Stanford bunny volume.}
+%\end{figure}
 
-\begin{figure}[h!]
-    \centering
-    \includegraphics[width=80mm]{img/one_side_corrected.png}
-    \caption{The black occluding geometry in the center stops all but the light to the left to enter below.  In and out scattering on the volume and walls is evident.}
-\end{figure}
+%\begin{figure}[h!]
+%    \centering
+ %   \includegraphics[width=80mm]{img/bunny_spot/spot_right_new.png}
+%    \caption{Image exemplifying clear color bleeding next to the red wall in the bunny's shadow and correct transmittance through the bunny's hollow form.}
+%\end{figure}
+
+%\begin{figure}[h!]
+   % \centering
+  %  \includegraphics[width=80mm]{img/one_side_corrected.png}
+ %   \caption{The black occluding geometry in the center stops all but the light to the left to enter below.  In and out scattering on the volume and walls is evident.}
+%\end{figure}
 
 
 \end{document}
