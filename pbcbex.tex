@@ -51,7 +51,7 @@ The ability to render scenes with realistic lighting is desirable for many enter
 \label{background_sec}
 The goal of the proposed method is to include volumetric representations into a global illumination algorithm in a fast and coherent way. One of the unique features of participating media is that they must be represented with a more complex data-structure than solid geometric objects which are usually polygonalized in most rendering processes.  Light interacts with the particles of a volume, creating complex radiance patterns (increasing the necessary computational complexity exponentially.) In particular the most fundamental concepts are presented here,  (based off of  \cite{pbrt}).
 
-In contrast to polygonal models, in volumes, as light passes through a participating media, light will: become absorbed based on its absorption probability density $\sigma_{a}$ and light can be scattered based on a scatter probability density $\sigma_{s}$.  Both \emph{absorption} and \emph{scatter-out} involve the reduction of energy through a volume, reducing its transmittance, which can be combined into the following representation: $\sigma_{t}(\textup{p},w) = \sigma_{a}(\textup{p},w) + \sigma_{s}(\textup{p}, w)$.
+In contrast to polygonal models, in volumes, as light passes through a participating media, light will become absorbed based on its absorption probability density $\sigma_{a}$, scatter based on a scatter probability density $\sigma_{s}$ or simply pass through the volume.  Both \emph{absorption} and \emph{scatter-out} involve the reduction of energy through a volume, lowering its transmittance.  This can be combined into the following representation: $\sigma_{t}(\textup{p},w) = \sigma_{a}(\textup{p},w) + \sigma_{s}(\textup{p}, w)$.
 Then, integrating the transmittion of the volume over a ray gives us equation (1.1): $T_{r}(\textup{p} \to \textup{p}') = e^{-\int_{0}^{d}\sigma_{t} (p+t\mathit{w},\mathit{w})d\mathit{t}}\label{transmittion_eq}$.
 
 Additionally, in volumes, the probability that light may scatter from direction $w$ to $w'$ is described using a distribution function or \textit{phase function}, which describes the angular distribution of light scattered by particles in a volume.  All tests in this paper were rendered using one of the simplest phase functions, known as the isotropic or \textit{constant} phase function which represents the BRDF analog for participating media~\cite{cerezo}.
@@ -77,7 +77,7 @@ We present an algorithm which is an extension to the point cloud techniques desc
 
 In general, PCB methods subdivide the world into small representational segments, called surfels~\cite{christensen:2008}, which are stored in a large point cloud, representing the scene.  Surfels are used to model direct illumination, and are then used in a later phase to compute indirect lighting and color bleeding in an efficient manner.  
 
-The goal of our method is to include volumetric representations into PCB methods in a fast and coherent way while keeping memory overhead and computational complexity to a minimum.  In the existing algorithms~\cite{christensen:2008}, surfels represent opaque materials within the point cloud, thus to incorporate a representation of volumetric data, an additional data representation was necessary to handle the scatter and absorption properties of participating media.  Our data representation closely follows the model of surfels, in that we choose to sample the volume at discrete locations and store a finite representation of the lighting at those discrete locations, but with modifications to handle the special attributes of lighting in transparent media.  In keeping with the naming conventions established, we call our discrete sampling of lighting elements for a volume: \emph{lvoxels}.  
+The goal of our method is to include volumetric representations into PCB methods in a fast and coherent way while keeping memory overhead and computational complexity to a minimum.  In the existing algorithm~\cite{christensen:2008}, surfels represent opaque materials within the point cloud, thus to incorporate a representation of volumetric data, an additional data representation was necessary to handle the scatter and absorption properties of participating media.  Our data representation closely follows the model of surfels, in that we choose to sample the volume at discrete locations and store a finite representation of the lighting at those discrete locations, but with modifications to handle the special attributes of lighting in transparent media.  In keeping with the naming conventions established, we call our discrete sampling of lighting elements for a volume: \emph{lvoxels}.  
 
 In general, our algorithm must 1) sample the scene geometry (including the volume) and store the direct lighting (or relevant lighting properties) 2) gather indirect lighting and 3) model the scatter-out and scatter-in properties of volumetric lighting.
 
@@ -115,19 +115,6 @@ After adding lvoxels to our octree structure and evaluation algorithm, the only 
 
 %==============================================================================%
 \section{Results}
-Our algorithm is able to achieve realistic lighting effects for scenes that include volumetric elements using our lvoxel representation with a point-based color bleeding approach to global illumination.
-All test cases were run on a commodity-class Intel i5 3 GHz machine with 4 Gb of RAM.  Because of the disparity between academic-level versus production-class ray tracer implementations, we tested and compared our results against a naive implementation of Monte Carlo global illumination not using the point cloud representation.  We then compared the resulting images and render times of each.  Our algorithm is able to achieve a very small image difference and an increase in render time efficiency.
-
-The scene tested involved a 60,000 triangle Sponza Atrium model including only vertex and normal information for simplicity.  CT scan datasets of a human head and the Stanford Bunny were used in order to test scatter in/out contributions by complex participating media.
-Both Figures~\ref{fig:compare1} and~\ref{fig:compare2} show the CT data in Sponza Atrium rendered with traditional Monte Carlo scattering and our extended PCB.  These resulting renders are very similar, and a closer look in Figure~\ref{fig:compare_second}, exemplifies the great similarity between the two images.  However, there are some small artifacts present in the image rendered with the point cloud representation, and the indirect lighting is slightly darker overall. 
-
-\begin{figure}[]
-    \centering
-    \includegraphics[width=90mm]{img/compare.png}
-    \caption{Bunny Scene comparison of the PCB extension (left) and traditional Monte Carlo results (right.)}
-    \label{fig:compare1}
-\end{figure}
-
 
 \begin{figure}
     \centering
@@ -141,25 +128,21 @@ Both Figures~\ref{fig:compare1} and~\ref{fig:compare2} show the CT data in Sponz
 
 \subfigure[]{%
     \label{fig:compare_first}
-    \includegraphics[width=0.65\linewidth]{img/compare1_corrected}
+    \includegraphics[width=0.65\linewidth]{img/compare_trad_corrected}
 }\\
 \subfigure[]{%
     \label{fig:compare_second}
-    \includegraphics[width=0.65\linewidth]{img/compare_trad_corrected}
+    \includegraphics[width=0.65\linewidth]{img/compare1_corrected}
 }
-
-\caption{(a) Zoomed image showing traditional PCB (left) and PCB with extension (right.) and (b) Zoomed image showing PCB extension (left) and Monte Carlo (right.)}
-
+    \caption{(a) Zoomed image showing traditional PCB (left) and PCB with extension (right.) and (b) Zoomed image showing PCB extension (left) and Monte Carlo (right.)}
 \end{figure}
 
-%------------------------------------------------------------%
-\subsection{Data Comparison}
+Our algorithm is able to achieve realistic lighting effects for scenes that include volumetric elements using our lvoxel representation with a point-based color bleeding approach to global illumination.
+All test cases were run on a commodity-class Intel i5 3 GHz machine with 4 Gb of RAM.  Because of the disparity between academic-level versus production-class ray tracer implementations, we tested and compared our results against a naive implementation of Monte Carlo global illumination not using the point cloud representation.  We then compared the resulting images and render times of each.  Our algorithm is able to achieve a very small image difference and an increase in render time efficiency.
 
-Table~\ref{tb:compare} shows render times, image differences and memory overhead for the CT scan datasets in the Sponza Atrium with varying sized volumes and for three different rendering methods: Monte Carlo without PCB, traditional PCB and finally our extended PCB algorithm.
+The scene tested involved a 60,000 triangle Sponza Atrium model including only vertex and normal information for simplicity.  CT scan datasets of a human head and the Stanford Bunny were used in order to test scatter in/out contributions involving complex participating media.
+Both Figures~\ref{fig:compare1} and~\ref{fig:compare2} show the CT data in Sponza Atrium rendered with traditional Monte Carlo scattering and our extended PCB.  These resulting renders are very similar, and a closer look in Figure~\ref{fig:compare_second}, exemplifies the great similarity between the two images.  However, there are some small artifacts present in the image rendered with the point cloud representation, and the indirect lighting is slightly darker overall.  Further results that show proper color bleeding can be seen in Figure \ref{fig:examples}.  Close up comparison of traditional PCB versus extended PCB is shown in Figure \ref{fig:compare_second}.
 
-
-\paragraph{Memory:}
-When using traditional PCB, the real benefit to its surfel representation is shown in more complex scenes.  In the Sponza Atrium, the scene generated over 2.5 million surfels for a 60,000 triangle scene.  Adding volume data to the scene does not add an objectionable amount of data to the point cloud (see Table~\ref{tb:compare}), but for scenes with large volumes the costs could quickly add up without some form of multi-resolution light caching.  In this regard, adding yet another representation of the volumes may be expensive, but not prohibitively so.  Additionally, larger scenes would benefit from this representation, as the point cloud would be significantly simpler than the entire scene and can be moved to another system for out-of-core evaluation.
 
 \setlength{\tabcolsep}{4pt}
 \begin{table}
@@ -228,6 +211,15 @@ When using traditional PCB, the real benefit to its surfel representation is sho
 \end{table}
 \setlength{\tabcolsep}{1.4pt}
 
+%------------------------------------------------------------%
+\subsection{Data Comparison}
+
+Table~\ref{tb:compare} shows render times, image differences and memory overhead for the CT scan datasets in the Sponza Atrium with varying sized volumes and for three different rendering methods: Monte Carlo without PCB, traditional PCB and finally our extended PCB algorithm.
+
+
+\paragraph{Memory:}
+When using traditional PCB, the real benefit to its surfel representation is shown in more complex scenes.  In the Sponza Atrium, the scene generated over 2.5 million surfels for a 60,000 triangle scene.  Adding volume data to the scene does not add an objectionable amount of data to the point cloud (see Table~\ref{tb:compare}), but for scenes with large volumes the costs could quickly add up without some form of multi-resolution light caching.  In this regard, adding yet another representation of the volumes may be expensive, but not prohibitively so.  Additionally, larger scenes would benefit from this representation, as the point cloud would be significantly simpler than the entire scene and can be moved to another system for out-of-core evaluation.
+
 %----------------------------------%
 \paragraph{Speed:}
 Even without volume integration, Monte Carlo integration without a lighting representation like PCB is prohibitively slow for even the simplest scenes.  Adding a point cloud representation gave us an impressive speedup.  That speedup was compounded even more when volume scattering was added into the tests, showing a speedup upwards of 36 times that of the Monte Carlo renders.  Compared to traditional PCB runs, we found the increase in overall runtime to be well worth the improvements to the renders we achieved. Even on sparse octrees without volumes, our \textit{front to back} octree traversal operates at an efficiency of $O\log{n}$ for each node traversal while skipping nodes occluded by surfels, leading to an average performance increase of over 18\%.
@@ -251,14 +243,23 @@ Another fruitful addition to our current method would be including rougher estim
 \section*{Acknowledgements}
 A special thanks to Patrick Kelly from DreamWorks Animations for his consistent help and support.  Our brainstorming sessions were invaluable, and always left me full of new ideas as well as helping me hone the subject for this project.
 
-\begin{figure}
-    \centering
-   \includegraphics[width=120mm]{img/Two_Bunnies.png}
-    \caption{On the left is  an image exemplifying clear out-scattering from Stanford bunny volume.  The right shows an image exemplifying clear color bleeding next to the red wall in the bunny's shadow and correct transmittance through the bunny's hollow form.}
-\end{figure}
 
 \bibliographystyle{pbcbex}
 \bibliography{pbcbex}
+
+\begin{figure}[]
+    \centering
+    \includegraphics[width=90mm]{img/compare.png}
+    \caption{Bunny Scene comparison of the PCB extension (left) and traditional Monte Carlo results (right.)}
+    \label{fig:compare1}
+\end{figure}
+
+\begin{figure}
+    \centering
+   \includegraphics[width=120mm]{img/Two_Bunnies.png}
+    \caption{Additional examples of clear color bleeding using our algorithm}
+    \label{fig:examples}
+\end{figure}
 
 
 %\begin{figure}[h!]
